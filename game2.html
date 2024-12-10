@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颜色匹配游戏</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 游戏背景介绍页面 -->
+    <div class="intro-container">
+        <h1>魔法王国的颜色挑战</h1>
+        <p>欢迎来到魔法王国！这里的色彩有着神秘的力量，只有最聪明的冒险者才能通过挑战。</p>
+        <p>在每一关中，你将面对不同的颜色，必须快速找到与目标颜色匹配的卡片。</p>
+        <p>点击开始按钮进入游戏，挑战你的反应力和观察力！</p>
+        <button onclick="startGame()">开始游戏</button>
+    </div>
+
+    <!-- 游戏页面 -->
+    <div class="game-container" style="display:none;">
+        <h1>欢迎来到魔法王国的颜色挑战</h1>
+        <div id="game-info">
+            <div id="level">关卡：1</div>
+            <div id="score">分数：0</div>
+        </div>
+        <div id="color-display-container">
+            <p id="color-hint">目标颜色</p>
+            <div id="color-display" class="color-box"></div>
+        </div>
+        <div id="color-options" class="options">
+            <button class="color-button"></button>
+            <button class="color-button"></button>
+            <button class="color-button"></button>
+            <button class="color-button"></button>
+        </div>
+        <div id="dialog-box" class="dialog-box">
+            <p id="npc-dialog">法师：欢迎，勇敢的冒险者！你已准备好迎接挑战吗？</p>
+        </div>
+        <div id="restart-btn" style="display:none;">
+            <button onclick="startGame()">开始新游戏</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
