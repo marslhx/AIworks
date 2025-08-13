@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>九九乘法表打地鼠</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: white;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .score, .timer, .best-score {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 30px repeat(9, 1fr);
+            grid-template-rows: 30px repeat(9, 1fr);
+            gap: 2px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .axis-label {
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cell.highlight-row, .cell.highlight-col {
+            background: rgba(255, 255, 0, 0.4);
+            transform: scale(1.05);
+        }
+
+        .cell.highlight-active {
+            background: rgba(255, 0, 0, 0.6);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        .cell.completed {
+            background: rgba(0, 255, 0, 0.5);
+        }
+
+        .cell.failed {
+            background: rgba(255, 0, 0, 0.5);
+        }
+
+        .hole {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #8B4513;
+            border-radius: 50%;
+            border: 2px solid #654321;
+            z-index: 2;
+        }
+
+        .mole {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #CD853F;
+            border-radius: 50%;
+            border: 2px solid #8B4513;
+            z-index: 3;
+            animation: moleAppear 0.3s ease-out;
+        }
+
+        .mole::before {
+            content: '🐹';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            font-size: 16px;
+        }
+
+        @keyframes moleAppear {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .input-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .input-container.active {
+            display: flex;
+        }
+
+        .equation {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .answer-input {
+            width: 80px;
+            height: 45px;
+            border: none;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            background: white;
+            color: #333;
+        }
+
+        .confirm-btn {
+            width: 60px;
+            height: 45px;
+            border: none;
+            border-radius: 10px;
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.95);
+            background: #45a049;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .settings {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .settings select {
+            padding: 5px 10px;
+            border-radius: 10px;
+            border: none;
+            background: white;
+            color: #333;
+        }
+
+        .countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            border-radius: 15px;
+        }
+
+        .game-over h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .game-over p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s ease;
+        }
+
+        .error-answer {
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .correct-answer {
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 400px) {
+            .game-container {
+                max-width: 350px;
+                padding: 10px;
+            }
+            
+            .equation {
+                font-size: 16px;
+                min-width: 100px;
+            }
+            
+            .answer-input {
+                width: 70px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .confirm-btn {
+                width: 50px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 20px; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">九九乘法表打地鼠</h1>
+    
+    <div class="header">
+        <div class="score">得分: <span id="score">0</span></div>
+        <div class="timer">时间: <span id="timer">0</span>s</div>
+        <div class="best-score">最高: <span id="bestScore">0</span></div>
+    </div>
+
+    <div class="game-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="grid-container">
+            <div class="grid" id="gameGrid"></div>
+            <div id="countdown" class="countdown hidden"></div>
+            <div id="gameOver" class="game-over hidden">
+                <h2>游戏结束!</h2>
+                <p>最终得分: <span id="finalScore">0</span></p>
+                <p>正确率: <span id="accuracy">0</span>%</p>
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="showAnswers()">查看正确答案</button>
+                    <button class="btn btn-primary" onclick="restartGame()">再来一局</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-content">
+            <div class="controls">
+                <button class="btn btn-primary" id="startPauseBtn" onclick="toggleGame()">开始游戏</button>
+                <button class="btn btn-danger" onclick="resetGame()">重置</button>
+            </div>
+
+            <div class="settings">
+                <label>间隔时间:</label>
+                <select id="intervalSelect">
+                    <option value="3000">3秒</option>
+                    <option value="6000" selected>6秒</option>
+                    <option value="9000">9秒</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-container" id="inputContainer">
+            <div class="equation" id="equation">开始游戏</div>
+            <input type="number" class="answer-input" id="answerInput" placeholder="?" disabled>
+            <button class="confirm-btn" id="confirmBtn" onclick="submitAnswer()" disabled>✓</button>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            isPlaying: false,
+            isPaused: false,
+            score: 0,
+            timer: 0,
+            currentRow: 0,
+            currentCol: 0,
+            completedCells: new Set(),
+            failedCells: new Set(),
+            totalCells: 81,
+            interval: 5000,
+            currentTimeout: null,
+            gameTimer: null,
+            bestScore: localStorage.getItem('bestScore') || 0
+        };
+
+        // 初始化游戏
+        function initGame() {
+            createGrid();
+            updateDisplay();
+            document.getElementById('bestScore').textContent = gameState.bestScore;
+            
+            // 添加键盘事件
+            document.getElementById('answerInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    submitAnswer();
+                }
+            });
+        }
+
+        // 创建网格
+        function createGrid() {
+            const grid = document.getElementById('gameGrid');
+            grid.innerHTML = '';
+
+            // 空角落
+            grid.appendChild(document.createElement('div'));
+
+            // 列标签
+            for (let i = 1; i <= 9; i++) {
+                const label = document.createElement('div');
+                label.className = 'axis-label';
+                label.textContent = i;
+                grid.appendChild(label);
+            }
+
+            // 行和单元格
+            for (let row = 1; row <= 9; row++) {
+                // 行标签
+                const label = document.createElement('div');
+                label.className = 'axis-label';
+                label.textContent = row;
+                grid.appendChild(label);
+
+                // 单元格
+                for (let col = 1; col <= 9; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.id = `cell-${row}-${col}`;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (gameState.isPaused) {
+                resumeGame();
+                return;
+            }
+
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.timer = 0;
+            gameState.completedCells.clear();
+            gameState.failedCells.clear();
+            gameState.interval = parseInt(document.getElementById('intervalSelect').value);
+
+            // 重置网格
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.className = 'cell';
+                cell.innerHTML = '';
+            });
+
+            // 显示输入区域
+            document.getElementById('inputContainer').classList.add('active');
+
+            // 更新界面
+            document.getElementById('startPauseBtn').textContent = '暂停';
+            document.getElementById('intervalSelect').disabled = true;
+            document.getElementById('gameOver').classList.add('hidden');
+
+            // 倒计时
+            countdown(3, () => {
+                startGameTimer();
+                nextRound();
+            });
+        }
+
+        // 切换游戏状态（开始/暂停）
+        function toggleGame() {
+            if (!gameState.isPlaying) {
+                startGame();
+            } else if (gameState.isPaused) {
+                resumeGame();
+            } else {
+                pauseGame();
+            }
+        }
+
+        // 倒计时
+        function countdown(seconds, callback) {
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.classList.remove('hidden');
+            countdownEl.textContent = seconds;
+
+            if (seconds > 0) {
+                setTimeout(() => countdown(seconds - 1, callback), 1000);
+            } else {
+                countdownEl.textContent = '开始!';
+                setTimeout(() => {
+                    countdownEl.classList.add('hidden');
+                    callback();
+                }, 500);
+            }
+        }
+
+        // 开始游戏计时器
+        function startGameTimer() {
+            gameState.gameTimer = setInterval(() => {
+                if (!gameState.isPaused) {
+                    gameState.timer++;
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        // 下一轮
+        function nextRound() {
+            if (gameState.completedCells.size + gameState.failedCells.size >= gameState.totalCells) {
+                endGame();
+                return;
+            }
+
+            // 选择一个未完成的格子
+            let row, col;
+            do {
+                row = Math.floor(Math.random() * 9) + 1;
+                col = Math.floor(Math.random() * 9) + 1;
+            } while (gameState.completedCells.has(`${row}-${col}`) || gameState.failedCells.has(`${row}-${col}`));
+
+            gameState.currentRow = row;
+            gameState.currentCol = col;
+
+            // 高亮行和列
+            highlightRowCol(row, col);
+
+            // 显示土坑
+            showHole(row, col);
+
+            // 更新方程式
+            document.getElementById('equation').textContent = `${row} × ${col} = ?`;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('answerInput').disabled = false;
+            document.getElementById('confirmBtn').disabled = false;
+            document.getElementById('answerInput').focus();
+
+            // 设置超时
+            gameState.currentTimeout = setTimeout(() => {
+                if (gameState.isPlaying && !gameState.isPaused) {
+                    timeOut();
+                }
+            }, gameState.interval);
+        }
+
+        // 高亮行和列
+        function highlightRowCol(row, col) {
+            // 清除之前的高亮
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('highlight-row', 'highlight-col', 'highlight-active');
+            });
+
+            // 高亮行
+            for (let c = 1; c <= 9; c++) {
+                document.getElementById(`cell-${row}-${c}`).classList.add('highlight-row');
+            }
+
+            // 高亮列
+            for (let r = 1; r <= 9; r++) {
+                document.getElementById(`cell-${r}-${col}`).classList.add('highlight-col');
+            }
+
+            // 高亮当前格子
+            document.getElementById(`cell-${row}-${col}`).classList.add('highlight-active');
+        }
+
+        // 显示土坑
+        function showHole(row, col) {
+            const cell = document.getElementById(`cell-${row}-${col}`);
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+            cell.innerHTML = '';
+            cell.appendChild(hole);
+        }
+
+        // 提交答案
+        function submitAnswer() {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+
+            const answer = parseInt(document.getElementById('answerInput').value);
+            const correctAnswer = gameState.currentRow * gameState.currentCol;
+
+            clearTimeout(gameState.currentTimeout);
+
+            if (answer === correctAnswer) {
+                // 答对了
+                gameState.score++;
+                gameState.completedCells.add(`${gameState.currentRow}-${gameState.currentCol}`);
+                
+                const cell = document.getElementById(`cell-${gameState.currentRow}-${gameState.currentCol}`);
+                cell.classList.add('completed');
+                cell.innerHTML = `<div class="correct-answer">${correctAnswer}</div>`;
+                
+                // 禁用输入
+                document.getElementById('answerInput').disabled = true;
+                document.getElementById('confirmBtn').disabled = true;
+                
+                setTimeout(() => nextRound(), 500);
+            } else {
+                // 答错了
+                timeOut();
+            }
+
+            updateDisplay();
+        }
+
+        // 超时处理
+        function timeOut() {
+            gameState.failedCells.add(`${gameState.currentRow}-${gameState.currentCol}`);
+            
+            const cell = document.getElementById(`cell-${gameState.currentRow}-${gameState.currentCol}`);
+            cell.classList.add('failed');
+            
+            // 显示地鼠
+            const mole = document.createElement('div');
+            mole.className = 'mole';
+            cell.innerHTML = '';
+            cell.appendChild(mole);
+            
+            // 禁用输入
+            document.getElementById('answerInput').disabled = true;
+            document.getElementById('confirmBtn').disabled = true;
+            
+            setTimeout(() => nextRound(), 1000);
+        }
+
+        // 暂停游戏
+        function pauseGame() {
+            gameState.isPaused = true;
+            clearTimeout(gameState.currentTimeout);
+            document.getElementById('startPauseBtn').textContent = '继续';
+            document.getElementById('answerInput').disabled = true;
+            document.getElementById('confirmBtn').disabled = true;
+        }
+
+        // 继续游戏
+        function resumeGame() {
+            gameState.isPaused = false;
+            document.getElementById('startPauseBtn').textContent = '暂停';
+            document.getElementById('answerInput').disabled = false;
+            document.getElementById('confirmBtn').disabled = false;
+            document.getElementById('answerInput').focus();
+            
+            // 重新设置超时
+            gameState.currentTimeout = setTimeout(() => {
+                if (gameState.isPlaying && !gameState.isPaused) {
+                    timeOut();
+                }
+            }, gameState.interval);
+        }
+
+        // 结束游戏
+        function endGame() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.gameTimer);
+            clearTimeout(gameState.currentTimeout);
+
+            // 隐藏输入区域
+            document.getElementById('inputContainer').classList.remove('active');
+
+            // 更新最高分
+            if (gameState.score > gameState.bestScore) {
+                gameState.bestScore = gameState.score;
+                localStorage.setItem('bestScore', gameState.bestScore);
+                document.getElementById('bestScore').textContent = gameState.bestScore;
+            }
+
+            // 计算正确率
+            const accuracy = Math.round((gameState.score / gameState.totalCells) * 100);
+
+            // 显示游戏结束界面
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('accuracy').textContent = accuracy;
+            document.getElementById('gameOver').classList.remove('hidden');
+
+            // 重置按钮
+            document.getElementById('startPauseBtn').textContent = '开始游戏';
+            document.getElementById('intervalSelect').disabled = false;
+        }
+
+        // 显示答案
+        function showAnswers() {
+            // 隐藏游戏结束浮层
+            document.getElementById('gameOver').classList.add('hidden');
+            
+            gameState.failedCells.forEach(cellKey => {
+                const [row, col] = cellKey.split('-').map(Number);
+                const answer = row * col;
+                const cell = document.getElementById(`cell-${row}-${col}`);
+                cell.innerHTML = `<div class="error-answer">${answer}</div>`;
+                cell.classList.add('failed');
+            });
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            resetGame();
+            setTimeout(() => startGame(), 100);
+        }
+
+        // 重置游戏
+        function resetGame() {
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+            clearInterval(gameState.gameTimer);
+            clearTimeout(gameState.currentTimeout);
+
+            // 隐藏输入区域
+            document.getElementById('inputContainer').classList.remove('active');
+
+            // 重置界面
+            document.getElementById('startPauseBtn').textContent = '开始游戏';
+            document.getElementById('intervalSelect').disabled = false;
+            document.getElementById('answerInput').disabled = true;
+            document.getElementById('confirmBtn').disabled = true;
+            document.getElementById('equation').textContent = '开始游戏';
+            document.getElementById('answerInput').value = '';
+            document.getElementById('gameOver').classList.add('hidden');
+
+            // 重置网格
+            createGrid();
+            updateDisplay();
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('timer').textContent = gameState.timer;
+            
+            const progress = ((gameState.completedCells.size + gameState.failedCells.size) / gameState.totalCells) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // 初始化游戏
+        initGame();
+    </script>
+</body>
+</html>
